@@ -114,8 +114,10 @@ plot_data <- function(df) {
 }
 
 # Basic control chart with center line and control limits -----------------
-# Using geom_line for the reference lines as well as data allows the labels, linetytpes, ... to show up in legend instead of manually coding position in plot.
-# This requires data for the plot to be in tidy format (tall) with all y values in the same column and a separate column to specify the groups.
+# Using geom_line for the reference lines as well as data allows the labels, 
+# linetytpes, ... to show up in legend instead of manually coding position in plot.
+# This requires data for the plot to be in tidy format (tall) with all y values 
+# in the same column and a separate column to specify the groups.
 # Specific axis and chart labels are applied within the data analysis functions.
 
 ctrl_cht <- function(plotdata) {
@@ -132,9 +134,12 @@ ctrl_cht <- function(plotdata) {
     theme(legend.position = "right")
 }
 
-# Basic control chart with log scale for y axis with center line and control limits -----------------
-# Using geom_line for the reference lines as well as data allows the labels, linetytpes, ... to show up in legend instead of manually coding position in plot.
-# This requires data for the plot to be in tidy format (tall) with all y values in the same column and a separate column to specify the groups.
+# Basic control chart with log scale for y axis with center line and control limits
+# -----------------
+# Using geom_line for the reference lines as well as data allows the labels,
+# linetytpes, ... to show up in legend instead of manually coding position in plot.
+# This requires data for the plot to be in tidy format (tall) with all y values
+# in the same column and a separate column to specify the groups.
 # Specific axis and chart labels are applied within the data analysis functions.
 
 log_ctrl_cht <- function(plotdata) {
@@ -255,8 +260,53 @@ ind_charts <- function(usrdata, usrtitle) {
 
 # Replicate Standard Deviation Charts ------------------------
 
+# PI: The default operation of the qic function is to set the entire runs.signal
+# column to true in the return.data data set if the runs.signal test is true for 
+# any run. We want it to be true only for the runs that generate a signal.
+# We do this by running qic sequentially with cumulatively increasing data sets
+# starting with runs 1-5, then adding run 6, etc. If there are fewer than 6 runs,
+# this is not done.
+
 xbars_charts <- function(usrdata, usrtitle) {
-  XbarChartData <- as_tibble(qic(x = usrdata$Run, y = log10(usrdata$Data), chart = "xbar", return.data = TRUE)) %>%
+
+  # Get the number of runs
+  
+  runs.list = unique (usrdata$Run)
+  n.runs = length (runs.list)
+  
+  print ("xbar post 1")
+  
+  if (n.runs > 5) {
+    usrdata.1_5 = usrdata [usrdata$Run %in% runs.list [1:5], ]
+    table.1_5 = as_tibble(qic(
+      x = usrdata.1_5$Run,
+      y = log10(usrdata.1_5$Data),
+      chart = "xbar",
+      return.data = TRUE
+    ))
+    new.run.signal = table.1_5$runs.signal
+    
+    print ("xbar post 1a")
+    
+    
+    for (runid in 6:n.runs) {
+      usrdata.temp = usrdata [usrdata$Run %in% runs.list [1:runid], ]
+      run.signal.temp = summary (qic(
+        x = usrdata.temp$Run,
+        y = log10(usrdata.temp$Data),
+        chart = "xbar"
+      ))
+      new.run.signal = c(new.run.signal, as.logical (run.signal.temp$runs.signal))
+    }
+  }
+  
+  print ("xbar post 2")
+  
+  # Run the chart on the whole table
+  
+  XbarChartData <- as_tibble(qic(x = usrdata$Run, 
+                                 y = log10(usrdata$Data), 
+                                 chart = "xbar", return.data = TRUE)) %>%
     qic_extract() %>%
     mutate(
       n = as.character(n),
@@ -275,6 +325,12 @@ xbars_charts <- function(usrdata, usrtitle) {
   XbarChartData <- XbarChartData %>%
     rename(`Geo.Mean(Potency)` = Data)
 
+  print ("xbar post 3")
+  
+  # Replace the default runs.signal column with our own
+  
+  XbarChartData$runs.signal = new.run.signal  
+  
   # S Chart (VarChart)
 
   SChartData <- as_tibble(qic(x = usrdata$Run, y = log10(usrdata$Data), chart = "s", return.data = TRUE)) %>%
