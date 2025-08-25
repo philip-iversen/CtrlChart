@@ -34,7 +34,7 @@ IndChtReport <- if (chartType %in% c('ind', 'both')) {
 } 
 
 RepChtReport <- if (chartType %in% c('rep', 'both')) {
-  xbars_charts(usrData, usrTitle)
+  xbars_charts(usrData, usrTitle, msrwin=msrWindow)
 }
 
 MsrChartReport <- if (length(repCount$Run) < msrWindow) {

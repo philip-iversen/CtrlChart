@@ -265,9 +265,9 @@ ind_charts <- function(usrdata, usrtitle) {
 # any run. We want it to be true only for the runs that generate a signal.
 # We do this by running qic sequentially with cumulatively increasing data sets
 # starting with runs 1-5, then adding run 6, etc. If there are fewer than 6 runs,
-# this is not done.
+# this is not done. I've actually used msrwindow, which is currently set at 6.
 
-xbars_charts <- function(usrdata, usrtitle) {
+xbars_charts <- function(usrdata, usrtitle, msrwin=6) {
 
   # Get the number of runs
   
@@ -277,7 +277,7 @@ xbars_charts <- function(usrdata, usrtitle) {
   print ("xbar post 1")
   
   if (n.runs > 5) {
-    usrdata.1_5 = usrdata [usrdata$Run %in% runs.list [1:5], ]
+    usrdata.1_5 = usrdata [usrdata$Run %in% runs.list [1:(msrwin-1)], ]
     table.1_5 = as_tibble(qic(
       x = usrdata.1_5$Run,
       y = log10(usrdata.1_5$Data),
@@ -289,7 +289,7 @@ xbars_charts <- function(usrdata, usrtitle) {
     print ("xbar post 1a")
     
     
-    for (runid in 6:n.runs) {
+    for (runid in msrwin:n.runs) {
       usrdata.temp = usrdata [usrdata$Run %in% runs.list [1:runid], ]
       run.signal.temp = summary (qic(
         x = usrdata.temp$Run,
@@ -327,9 +327,12 @@ xbars_charts <- function(usrdata, usrtitle) {
 
   print ("xbar post 3")
   
-  # Replace the default runs.signal column with our own
+  # Replace the default runs.signal column with our own, but only
+  # if there are at least 6 runs
   
-  XbarChartData$runs.signal = new.run.signal  
+  if (n.runs > 5) {
+    XbarChartData$runs.signal = new.run.signal  
+  }
   
   # S Chart (VarChart)
 
